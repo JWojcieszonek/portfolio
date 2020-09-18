@@ -3,32 +3,51 @@ package com.example.portfolio.controllers;
 import com.example.portfolio.entities.Photo;
 import com.example.portfolio.repositories.PhotoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.Inflater;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 @RestController
-@RequestMapping("/photos")
+@CrossOrigin(origins = "*")
 public class PhotoController {
 
     @Autowired
     PhotoRepository photoRepository;
+    private final Path fileStorage = Paths.get("D:\\Szkoła\\Nauka\\Portfolio\\front\\public\\images");
 
-    @GetMapping("/id/{photoId}")
-    public ResponseEntity getPhotoById(@PathVariable Integer photoId){
+    @CrossOrigin(origins = "*")
+    @GetMapping("/photos/{id}")
+    public ResponseEntity getPhotoById(@PathVariable Integer id){
 
-        Photo photo = photoRepository.findById(photoId).orElse(null);
-        photo.setImage(decompressBytes(photo.getImage()));
-        if(photo!=null)
-            return new ResponseEntity<>(photo, HttpStatus.OK);
+        Photo photo = photoRepository.findById(id).orElse(null);
+        if(photo!=null) {
+            //HttpHeaders headers = new HttpHeaders();
+           // headers.add("Access-Control-Allow-Origin","*");
+            return new ResponseEntity<>(photo,HttpStatus.OK);
+        }
+        else return ResponseEntity.badRequest().body("Photo with given id not found");
+    }
+
+    @GetMapping("/photos")
+    public ResponseEntity getAllPhotos(){
+
+        List<Photo> photos = (List<Photo>) photoRepository.findAll();
+        if(!photos.isEmpty()) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("X-Total-Count",String.valueOf(photos.size()));
+            headers.add("Access-Control-Expose-Headers","X-Total-Count");
+            return new ResponseEntity(photos,headers,HttpStatus.OK);
+        }
         else return ResponseEntity.badRequest().body("Photo with given id not found");
     }
 
@@ -36,44 +55,32 @@ public class PhotoController {
     public ResponseEntity uploadPhoto(@RequestParam("photoId") Integer photoId, @RequestParam("title") String title,
                                                   @RequestParam("description") String description,
                                                   @RequestParam("photo")MultipartFile file) throws IOException{
-        Photo photo = new Photo(photoId, title, description, compressBytes(file.getBytes()));
+        Photo photo = new Photo(photoId, title, description, saveImage(file),"http://127.0.0.1:8887/"+file.getOriginalFilename(),file.getOriginalFilename() );
         photoRepository.save(photo);
+
         return new ResponseEntity<>(photo, HttpStatus.OK);
     }
 
+    //TODO PUT, DELETE and probably modify POST
+    /*
+    @PutMapping("photos/{id}")
+    public ResponseEntity updatePhoto() {
 
-    public static byte[] compressBytes(byte[] data) {
-        Deflater deflater = new Deflater();
-        deflater.setInput(data);
-        deflater.finish();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
-        byte[] buffer = new byte[1024];
-        while (!deflater.finished()) {
-            int count = deflater.deflate(buffer);
-            outputStream.write(buffer, 0, count);
-        }
+    }
+    */
+
+    public String saveImage(MultipartFile file){
+        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+
+        Path targetLocation = fileStorage.resolve(fileName);
         try {
-            outputStream.close();
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
+            e.printStackTrace();
         }
-        System.out.println("Compressed Image Byte Size - " + outputStream.toByteArray().length);
-        return outputStream.toByteArray();
+        String path = targetLocation.toString();
+        path = path.replace("\\", "/");
+        return path;
     }
 
-    public static byte[] decompressBytes(byte[] data) {
-        Inflater inflater = new Inflater();
-        inflater.setInput(data);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
-        byte[] buffer = new byte[1024];
-        try {
-            while (!inflater.finished()) {
-                int count = inflater.inflate(buffer);
-                outputStream.write(buffer, 0, count);
-            }
-            outputStream.close();
-        } catch (IOException ioe) {
-        } catch (DataFormatException e) {
-        }
-        return outputStream.toByteArray();
-    }
 }

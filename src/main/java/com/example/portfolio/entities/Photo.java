@@ -1,9 +1,6 @@
 package com.example.portfolio.entities;
 
-import org.apache.tomcat.jni.File;
-
 import javax.persistence.*;
-import java.awt.*;
 
 @Entity
 @Table(name = "photos")
@@ -11,35 +8,29 @@ public class Photo {
 
     @Id
     @GeneratedValue( strategy = GenerationType.IDENTITY)
-    @Column(columnDefinition = "serial", name = "photoid")
-    private Integer photoId;
+    @Column(columnDefinition = "serial", name = "id")
+    private Integer id;
     private String title;
     private String description;
-    private byte[] image;
-
+    private String path;
+    private String webpath;
+    private String filename;
     public Photo(){}
 
-    public Photo(Integer photoId, String title, String description, byte[] image) {
+    public Photo(Integer id, String title, String description, String path, String webpath, String filename) {
         this.title = title;
         this.description = description;
-        this.image = image;
+        this.path = path;
+        this.webpath = webpath;
+        this.filename = filename;
     }
 
-    public Integer getPhotoId() {
-        return photoId;
+    public Integer getId() {
+        return id;
     }
 
-    public void setPhotoId(Integer photoId) {
-        this.photoId = photoId;
-    }
-
-
-    public byte[] getImage() {
-        return image;
-    }
-
-    public void setImage(byte[] image) {
-        this.image = image;
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getDescription() {
@@ -56,5 +47,29 @@ public class Photo {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public String getFilename() {
+        return filename;
+    }
+
+    public void setFilename(String filename) {
+        this.filename = filename;
+    }
+
+    public String getWebpath() {
+        return webpath;
+    }
+
+    public void setWebpath(String webpath) {
+        this.webpath = webpath;
     }
 }
